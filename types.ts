@@ -47,7 +47,7 @@ export interface Post {
   authorId: string;
   author: User; // Hydrated on client
   content: string;
-  createdAt: any; // Timestamp
+  createdAt: any; // Timestamp or string
   likesCount: number;
   repliesCount: number;
   repostsCount: number;
@@ -71,10 +71,12 @@ export interface Anime {
 
 export interface LibraryEntry {
   animeId: string;
-  status: 'Watching' | 'Completed' | 'Plan to Watch' | 'Dropped';
+  status: 'WATCHING' | 'COMPLETED' | 'PLANNING' | 'DROPPED' | 'PAUSED';
   progress: number;
   score: number;
   updatedAt: any;
+  totalEpisodes?: number;
+  notes?: string;
   // Hydrated fields from AniList
   anime?: Anime;
 }

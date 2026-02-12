@@ -4,7 +4,7 @@ import { ImageIcon, Mic, Loader2, Zap, RefreshCw, AlertCircle } from 'lucide-rea
 import { Button } from '../../components/Button';
 import { useAuthStore } from '../../store/useAuthStore';
 import { db } from '../../lib/firebase';
-import { collection, addDoc, query, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, query, onSnapshot, serverTimestamp, limit } from 'firebase/firestore';
 import { Post } from '../../types';
 
 export const Feed: React.FC = () => {
@@ -16,9 +16,11 @@ export const Feed: React.FC = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    // We fetch all posts without 'orderBy' initially to avoid "Missing Index" errors from Firestore.
-    // Sorting is done client-side for robustness.
-    const q = query(collection(db, 'posts'));
+    if (!user) return;
+    
+    // Query with limit to prevent overloading and potential timeout issues
+    // We sort client-side to avoid index requirement errors during development
+    const q = query(collection(db, 'posts'), limit(50));
     
     const unsubscribe = onSnapshot(q, 
       (snapshot) => {
@@ -40,7 +42,6 @@ export const Feed: React.FC = () => {
       },
       (err) => {
         console.error("Feed error:", err);
-        // Only show error if we really can't get data (e.g. permission denied)
         if (err.code === 'permission-denied') {
              setError("Access denied. Please check your permissions.");
         } else {
@@ -51,7 +52,7 @@ export const Feed: React.FC = () => {
     );
 
     return () => unsubscribe();
-  }, []);
+  }, [user]);
 
   const handlePost = async () => {
     if (!content.trim() || !user) return;

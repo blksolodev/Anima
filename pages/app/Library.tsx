@@ -1,11 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Loader2, Tv, AlertCircle } from 'lucide-react';
+import { Plus, Loader2, Tv } from 'lucide-react';
 import { fetchAniList, GET_ANIME_BY_IDS } from '../../lib/anilist';
-import { Anime, LibraryEntry } from '../../types';
+import { LibraryEntry } from '../../types';
 import { useAuthStore } from '../../store/useAuthStore';
 import { db } from '../../lib/firebase';
-import { collection, getDocs, query } from 'firebase/firestore';
+import { collection, getDocs, query, where, onSnapshot } from 'firebase/firestore';
+
+const TABS = [
+  { label: 'All', value: 'All' },
+  { label: 'Watching', value: 'WATCHING' },
+  { label: 'Plan to Watch', value: 'PLANNING' },
+  { label: 'Completed', value: 'COMPLETED' },
+  { label: 'Dropped', value: 'DROPPED' },
+];
 
 export const Library: React.FC = () => {
   const { user } = useAuthStore();
@@ -14,52 +22,72 @@ export const Library: React.FC = () => {
   const [filter, setFilter] = useState('All');
 
   useEffect(() => {
-    const loadLibrary = async () => {
-      if (!user) return;
-      setLoading(true);
-      try {
-        const q = query(collection(db, 'anime_library', user.id, 'entries'));
-        const snapshot = await getDocs(q);
-        const libData = snapshot.docs.map(doc => doc.data() as LibraryEntry);
+    if (!user) return;
+    setLoading(true);
 
-        if (libData.length === 0) {
-          setEntries([]);
-          setLoading(false);
-          return;
-        }
+    // Fetch from root collection 'anime_library' where u (userId) matches
+    const q = query(collection(db, 'anime_library'), where('u', '==', user.id));
+    
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      const libData = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          animeId: data.a,
+          status: data.s,
+          progress: data.p,
+          score: data.sc,
+          updatedAt: data.ua,
+          totalEpisodes: data.te,
+          notes: data.n
+        } as LibraryEntry;
+      });
 
-        const animeIds = libData.map(e => parseInt(e.animeId)).filter(id => !isNaN(id));
-        
-        if (animeIds.length > 0) {
-            const aniData = await fetchAniList(GET_ANIME_BY_IDS, { ids: animeIds });
-            const mergedEntries = libData.map(entry => {
-              const animeInfo = aniData.Page.media.find((m: any) => m.id.toString() === entry.animeId.toString());
-              return {
-                ...entry,
-                anime: animeInfo ? {
-                  id: animeInfo.id.toString(),
-                  title: animeInfo.title.english || animeInfo.title.romaji,
-                  coverImage: animeInfo.coverImage.large,
-                  episodes: animeInfo.episodes,
-                  score: animeInfo.averageScore ? animeInfo.averageScore / 10 : 0,
-                  status: animeInfo.status,
-                  genres: animeInfo.genres
-                } : undefined
-              };
-            });
-            setEntries(mergedEntries);
-        } else {
-            setEntries([]);
-        }
+      // Sort client-side by updated at (ua) descending
+      libData.sort((a, b) => {
+        const timeA = a.updatedAt?.seconds || 0;
+        const timeB = b.updatedAt?.seconds || 0;
+        return timeB - timeA;
+      });
 
-      } catch (err: any) {
-        console.error("Library error:", err);
+      if (libData.length === 0) {
         setEntries([]);
-      } finally {
         setLoading(false);
+        return;
       }
-    };
-    loadLibrary();
+
+      const animeIds = libData.map(e => parseInt(e.animeId)).filter(id => !isNaN(id));
+      
+      if (animeIds.length > 0) {
+        try {
+          const aniData = await fetchAniList(GET_ANIME_BY_IDS, { ids: animeIds });
+          const mergedEntries = libData.map(entry => {
+            const animeInfo = aniData.Page.media.find((m: any) => m.id.toString() === entry.animeId.toString());
+            return {
+              ...entry,
+              anime: animeInfo ? {
+                id: animeInfo.id.toString(),
+                title: animeInfo.title.english || animeInfo.title.romaji,
+                coverImage: animeInfo.coverImage.large,
+                episodes: animeInfo.episodes,
+                score: animeInfo.averageScore ? animeInfo.averageScore / 10 : 0,
+                status: animeInfo.status,
+                genres: animeInfo.genres
+              } : undefined
+            };
+          });
+          setEntries(mergedEntries);
+        } catch (err) {
+          console.error("Failed to fetch anime metadata:", err);
+          // Fallback to showing entries without metadata if API fails
+          setEntries(libData);
+        }
+      } else {
+        setEntries(libData);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, [user]);
 
   const filteredEntries = filter === 'All' 
@@ -73,13 +101,13 @@ export const Library: React.FC = () => {
             <h1 className="text-3xl font-bold">Your Library</h1>
         </div>
         <div className="flex gap-2 bg-[#1A1A2E] p-1 rounded-lg overflow-x-auto max-w-full">
-           {['All', 'Watching', 'Plan to Watch', 'Completed'].map((tab) => (
+           {TABS.map((tab) => (
              <button 
-                key={tab} 
-                onClick={() => setFilter(tab)}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${filter === tab ? 'bg-[#FF6B35] text-white' : 'text-[#A0A0B0] hover:text-white'}`}
+                key={tab.value} 
+                onClick={() => setFilter(tab.value)}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${filter === tab.value ? 'bg-[#FF6B35] text-white' : 'text-[#A0A0B0] hover:text-white'}`}
              >
-               {tab}
+               {tab.label}
              </button>
            ))}
         </div>

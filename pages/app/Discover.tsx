@@ -105,13 +105,21 @@ export const Discover: React.FC = () => {
     if (!user) return;
     setAddingToLib(anime.id);
     try {
-      await setDoc(doc(db, 'anime_library', user.id, 'entries', anime.id), {
-        animeId: anime.id,
-        status: 'Plan to Watch',
-        progress: 0,
-        score: 0,
-        updatedAt: serverTimestamp()
-      });
+      // Use new root collection 'anime_library' with composite key {userId}_{animeId}
+      // and short field names
+      const docId = `${user.id}_${anime.id}`;
+      await setDoc(doc(db, 'anime_library', docId), {
+        u: user.id, // userId
+        a: anime.id, // animeId
+        s: 'PLANNING', // status
+        p: 0, // progress
+        sc: 0, // score
+        n: '', // notes
+        te: anime.episodes || 0, // totalEpisodes
+        ca: serverTimestamp(), // createdAt
+        ua: serverTimestamp() // updatedAt
+      }, { merge: true });
+
     } catch (e) {
       console.error(e);
     } finally {
