@@ -1,5 +1,5 @@
 import { Swords, Tv, MessagesSquare, Trophy, Flame, Users, Zap, Home, Search, Bell, Mail, Library, User } from "lucide-react";
-import { NavLink, FeatureItem, StatItem, TeamMember, Post, Anime, User as UserType, Notification, Conversation, Message, TrendingTag } from "./types";
+import { NavLink, FeatureItem, StatItem, TeamMember, Quest, Anime, User as UserType, Notification, Conversation, Message, TrendingTag } from "./types";
 
 export const COLORS = {
   bgPrimary: "#0D0D14",
@@ -81,117 +81,66 @@ export const MOCK_USER: UserType = {
   id: "u1",
   username: "otaku_king",
   displayName: "ShadowSlayer",
-  email: "shadowslayer@example.com",
-  avatar: "https://picsum.photos/id/1012/200/200",
-  banner: "https://picsum.photos/id/1018/1000/300",
+  avatarUrl: "https://picsum.photos/id/1012/200/200",
+  bannerUrl: "https://picsum.photos/id/1018/1000/300",
   bio: "Just a humble fan waiting for the next arc. 🗡️ | Lvl 42 Paladin",
   powerLevel: 42,
   xp: 8500,
-  followers: 1240,
-  following: 85,
+  joinedAt: "2024-01-01",
+  badges: [],
+  pledgedCharacter: null,
+  favoriteAnime: [],
+  stats: {
+      postsCount: 142,
+      followersCount: 1240,
+      followingCount: 85,
+      completedAnime: 50,
+      watchingAnime: 12,
+      totalEpisodesWatched: 1200,
+      critsGiven: 10,
+      critsReceived: 5,
+  },
+  settings: {
+      theme: 'default',
+      notifications: {
+        newEpisodes: true,
+        mentions: true,
+        replies: true,
+        likes: true,
+        reposts: true,
+        guildActivity: true,
+        recommendations: true,
+      },
+      privacy: {
+        showWatchlist: true,
+        showActivity: true,
+        allowDMs: true,
+      },
+      spoilerProtection: true,
+  }
 };
 
-export const MOCK_POSTS: Post[] = [
-  {
-    id: "p1",
-    authorId: MOCK_USER.id,
-    author: MOCK_USER,
-    content: "Just finished the latest episode of JJK. The animation quality is absolutely insane! Mappa never misses. 🔥 #JJK #Anime",
-    createdAt: "2h ago",
-    likesCount: 342,
-    repliesCount: 45,
-    repostsCount: 12,
-    animeTag: { id: "a1", title: "Jujutsu Kaisen" },
-    image: "https://picsum.photos/id/1035/800/400"
-  },
-  {
-    id: "p2",
-    authorId: "u2",
-    author: { ...MOCK_USER, id: "u2", username: "anime_girl_99", displayName: "Sakura", avatar: "https://picsum.photos/id/1027/200/200" },
-    content: "Unpopular opinion: The manga ending was actually perfect. You guys just don't get the symbolism.",
-    createdAt: "4h ago",
-    likesCount: 89,
-    repliesCount: 124,
-    repostsCount: 5,
-  },
-  {
-    id: "p3",
-    authorId: "u3",
-    author: { ...MOCK_USER, id: "u3", username: "retro_fan", displayName: "Spike", avatar: "https://picsum.photos/id/1005/200/200" },
-    content: "Rewatching Cowboy Bebop for the 10th time. Still the best soundtrack in history. Change my mind.",
-    createdAt: "6h ago",
-    likesCount: 567,
-    repliesCount: 32,
-    repostsCount: 88,
-    animeTag: { id: "a2", title: "Cowboy Bebop" }
-  }
-];
-
-export const MOCK_LIBRARY: Anime[] = [
-  {
-    id: "a1",
-    title: "Frieren: Beyond Journey's End",
-    coverImage: "https://picsum.photos/id/1040/300/450",
-    episodes: 28,
-    score: 9.2,
-    status: "Airing",
-    genres: ["Fantasy", "Adventure"]
-  },
-  {
-    id: "a2",
-    title: "The Apothecary Diaries",
-    coverImage: "https://picsum.photos/id/1050/300/450",
-    episodes: 24,
-    score: 8.8,
-    status: "Airing",
-    genres: ["Mystery", "Historical"]
-  },
-  {
-    id: "a3",
-    title: "Solo Leveling",
-    coverImage: "https://picsum.photos/id/1060/300/450",
-    episodes: 12,
-    score: 8.5,
-    status: "Finished",
-    genres: ["Action", "Fantasy"]
-  },
-  {
-    id: "a4",
-    title: "One Piece",
-    coverImage: "https://picsum.photos/id/1070/300/450",
-    episodes: 1000,
-    score: 9.0,
-    status: "Airing",
-    genres: ["Action", "Adventure"]
-  }
-];
+// No MOCK_POSTS constant needed in strict mode, but preserved for compile safety if referenced elsewhere
+export const MOCK_POSTS: Quest[] = [];
 
 export const MOCK_NOTIFICATIONS: Notification[] = [
   {
     id: "n1",
     type: "like",
-    fromUserId: "u2",
-    fromUser: { ...MOCK_USER, id: "u2", username: "anime_girl_99", displayName: "Sakura", avatar: "https://picsum.photos/id/1027/200/200" },
+    recipientId: "u1",
+    user: { id: "u2", username: "anime_girl_99", displayName: "Sakura", avatarUrl: "https://picsum.photos/id/1027/200/200" },
     createdAt: "10m ago",
-    read: false,
+    isRead: false,
     content: "liked your post about JJK"
   },
   {
     id: "n2",
-    type: "reply",
-    fromUserId: "u3",
-    fromUser: { ...MOCK_USER, id: "u3", username: "retro_fan", displayName: "Spike", avatar: "https://picsum.photos/id/1005/200/200" },
+    type: "comment",
+    recipientId: "u1",
+    user: { id: "u3", username: "retro_fan", displayName: "Spike", avatarUrl: "https://picsum.photos/id/1005/200/200" },
     createdAt: "1h ago",
-    read: true,
+    isRead: true,
     content: "replied: 'Absolutely agree!'"
-  },
-  {
-    id: "n3",
-    type: "follow",
-    fromUserId: "u4",
-    fromUser: { ...MOCK_USER, id: "u4", username: "goku_stan", displayName: "Kakarot", avatar: "https://picsum.photos/id/1001/200/200" },
-    createdAt: "2h ago",
-    read: true
   }
 ];
 
@@ -201,30 +150,17 @@ export const MOCK_CONVERSATIONS: Conversation[] = [
     participantIds: [MOCK_USER.id, "u2"],
     participants: [
         MOCK_USER,
-        { ...MOCK_USER, id: "u2", username: "anime_girl_99", displayName: "Sakura", avatar: "https://picsum.photos/id/1027/200/200" }
+        { ...MOCK_USER, id: "u2", username: "anime_girl_99", displayName: "Sakura", avatarUrl: "https://picsum.photos/id/1027/200/200" }
     ],
     lastMessage: "Did you see the new trailer?",
     updatedAt: "5m ago",
     unreadCount: 2
-  },
-  {
-    id: "c2",
-    participantIds: [MOCK_USER.id, "u3"],
-    participants: [
-        MOCK_USER,
-        { ...MOCK_USER, id: "u3", username: "retro_fan", displayName: "Spike", avatar: "https://picsum.photos/id/1005/200/200" }
-    ],
-    lastMessage: "See you space cowboy...",
-    updatedAt: "1d ago",
-    unreadCount: 0
   }
 ];
 
 export const MOCK_MESSAGES: Message[] = [
   { id: "m1", senderId: "other", content: "Hey! Are you watching the new season of Demon Slayer?", sentAt: "10:00 AM" },
   { id: "m2", senderId: MOCK_USER.id, content: "Yeah! The animation is top tier as always.", sentAt: "10:02 AM" },
-  { id: "m3", senderId: "other", content: "I know right? Can't wait for the next arc.", sentAt: "10:03 AM" },
-  { id: "m4", senderId: "other", content: "Did you see the new trailer?", sentAt: "10:05 AM" },
 ];
 
 export const TRENDING_TAGS: TrendingTag[] = [

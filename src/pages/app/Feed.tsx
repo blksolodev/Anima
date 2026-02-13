@@ -1,54 +1,87 @@
 import React, { useState, useEffect } from 'react';
 import { PostCard } from '../../components/PostCard';
-import { ImageIcon, Mic, Loader2, Send } from 'lucide-react';
+import { ImageIcon, Mic, Loader2, RefreshCw, AlertCircle } from 'lucide-react';
 import { Button } from '../../components/Button';
 import { useAuthStore } from '../../store/useAuthStore';
 import { db } from '../../lib/firebase';
-import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
-import { Post } from '../../types';
+import { collection, addDoc, query, onSnapshot, serverTimestamp, limit } from 'firebase/firestore';
+import { Quest } from '../../types';
 
 export const Feed: React.FC = () => {
   const { user } = useAuthStore();
   const [content, setContent] = useState('');
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [quests, setQuests] = useState<Quest[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetchedPosts = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Post[];
-      setPosts(fetchedPosts);
-      setLoading(false);
-    });
+    if (!user) return;
+    setLoading(true);
+    
+    // Switch to 'quests' collection as per spec
+    const q = query(collection(db, 'quests'), limit(50));
+    
+    const unsubscribe = onSnapshot(q, 
+      (snapshot) => {
+        const fetchedQuests = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Quest[];
+
+        // Client-side sort
+        fetchedQuests.sort((a, b) => {
+          const timeA = a.createdAt?.seconds || (typeof a.createdAt === 'string' ? new Date(a.createdAt).getTime()/1000 : 0);
+          const timeB = b.createdAt?.seconds || (typeof b.createdAt === 'string' ? new Date(b.createdAt).getTime()/1000 : 0);
+          return timeB - timeA;
+        });
+
+        setQuests(fetchedQuests);
+        setLoading(false);
+        setError('');
+      },
+      (err) => {
+        console.error("Feed error:", err);
+        if (err.code === 'permission-denied') {
+             setError("Access denied. Please check your permissions.");
+        } else {
+             setError("Unable to load quests.");
+        }
+        setLoading(false);
+      }
+    );
 
     return () => unsubscribe();
-  }, []);
+  }, [user]);
 
   const handlePost = async () => {
     if (!content.trim() || !user) return;
     setSubmitting(true);
     try {
-      await addDoc(collection(db, 'posts'), {
+      // Create Quest with new schema
+      await addDoc(collection(db, 'quests'), {
         authorId: user.id,
         author: {
           id: user.id,
           username: user.username,
           displayName: user.displayName,
-          avatar: user.avatar
+          avatarUrl: user.avatarUrl,
+          powerLevel: user.powerLevel,
+          auraColor: '#FF6B35' // Default
         },
         content: content,
-        createdAt: serverTimestamp(),
-        likesCount: 0,
-        repliesCount: 0,
-        repostsCount: 0
+        mediaAttachment: null, // Placeholder for future media logic
+        animeReference: null, // Placeholder
+        likes: 0,
+        reposts: 0,
+        replies: 0,
+        isHotTake: false,
+        parentId: null,
+        createdAt: serverTimestamp()
       });
       setContent('');
     } catch (error) {
-      console.error("Error creating post", error);
+      console.error("Error creating quest", error);
     } finally {
       setSubmitting(false);
     }
@@ -69,7 +102,7 @@ export const Feed: React.FC = () => {
       {/* Composer */}
       <div className="mb-8 flex gap-4 p-4 border-b border-white/10 pb-6">
         <img 
-          src={user?.avatar || "https://ui-avatars.com/api/?name=Guest"} 
+          src={user?.avatarUrl || "https://ui-avatars.com/api/?name=Guest"} 
           alt="Me" 
           className="w-10 h-10 rounded-full object-cover" 
         />
@@ -100,19 +133,35 @@ export const Feed: React.FC = () => {
         </div>
       </div>
 
-      {/* Posts */}
+      {/* Quests (Posts) */}
       <div className="space-y-4">
         {loading ? (
           <div className="flex justify-center py-10">
             <Loader2 className="animate-spin text-[#FF6B35]" size={32} />
           </div>
-        ) : posts.length > 0 ? (
-          posts.map((post) => (
-            <PostCard key={post.id} post={post} />
+        ) : error ? (
+           <div className="text-center py-10 px-4 text-[#EF4444] bg-[#EF4444]/10 rounded-xl flex flex-col items-center gap-3">
+              <AlertCircle size={32} />
+              <p>{error}</p>
+              <Button 
+                variant="ghost" 
+                className="!text-[#EF4444] !border-[#EF4444]/20 hover:!bg-[#EF4444]/20 !py-2 !h-auto !px-4 text-sm"
+                onClick={() => window.location.reload()}
+              >
+                <RefreshCw size={14} className="mr-2" /> Retry
+              </Button>
+           </div>
+        ) : quests.length > 0 ? (
+          quests.map((quest) => (
+            <PostCard key={quest.id} quest={quest} />
           ))
         ) : (
-          <div className="text-center text-[#A0A0B0] py-10">
-            No posts yet. Be the first to start a quest!
+          <div className="text-center py-10">
+             <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
+               <ImageIcon className="text-[#A0A0B0]" size={32} />
+             </div>
+             <p className="text-white font-medium mb-1">No quests yet</p>
+             <p className="text-[#A0A0B0] text-sm">Be the first to start a quest!</p>
           </div>
         )}
       </div>

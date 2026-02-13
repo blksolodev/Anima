@@ -5,28 +5,36 @@ import { PostCard } from '../../components/PostCard';
 import { MapPin, Link as LinkIcon, Calendar, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { db } from '../../lib/firebase';
-import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
-import { Post } from '../../types';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { Quest } from '../../types';
 
 export const Profile: React.FC = () => {
   const { user } = useAuthStore();
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [quests, setQuests] = useState<Quest[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const fetchPosts = async () => {
       if (!user) return;
       try {
         const q = query(
-          collection(db, 'posts'), 
-          where('authorId', '==', user.id),
-          orderBy('createdAt', 'desc')
+          collection(db, 'quests'), 
+          where('authorId', '==', user.id)
         );
         const snapshot = await getDocs(q);
-        const userPosts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Post[];
-        setPosts(userPosts);
-      } catch (error) {
-        console.error("Error fetching user posts:", error);
+        const userQuests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Quest[];
+        
+        userQuests.sort((a, b) => {
+             const timeA = a.createdAt?.seconds || 0;
+             const timeB = b.createdAt?.seconds || 0;
+             return timeB - timeA;
+        });
+
+        setQuests(userQuests);
+      } catch (error: any) {
+        console.error("Error fetching user quests:", error);
+        setError("Could not load quests.");
       } finally {
         setLoadingPosts(false);
       }
@@ -41,7 +49,7 @@ export const Profile: React.FC = () => {
       {/* Banner */}
       <div className="h-64 md:h-80 w-full relative">
         <img 
-           src={user.banner || "https://picsum.photos/id/1018/1000/300"} 
+           src={user.bannerUrl || "https://picsum.photos/id/1018/1000/300"} 
            alt="Banner" 
            className="w-full h-full object-cover" 
         />
@@ -53,7 +61,7 @@ export const Profile: React.FC = () => {
         <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-6 mb-8">
           <div className="flex flex-col gap-4">
              <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-[#0D0D14] overflow-hidden relative group cursor-pointer">
-               <img src={user.avatar || `https://ui-avatars.com/api/?name=${user.username}`} alt="Avatar" className="w-full h-full object-cover" />
+               <img src={user.avatarUrl || `https://ui-avatars.com/api/?name=${user.username}`} alt="Avatar" className="w-full h-full object-cover" />
                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                  <span className="text-xs font-bold">Edit</span>
                </div>
@@ -84,11 +92,11 @@ export const Profile: React.FC = () => {
             </div>
             <div className="flex gap-6">
               <div className="flex gap-1">
-                <span className="font-bold text-white">{user.following}</span>
+                <span className="font-bold text-white">{user.stats?.followingCount || 0}</span>
                 <span className="text-[#A0A0B0]">Following</span>
               </div>
               <div className="flex gap-1">
-                <span className="font-bold text-white">{user.followers}</span>
+                <span className="font-bold text-white">{user.stats?.followersCount || 0}</span>
                 <span className="text-[#A0A0B0]">Followers</span>
               </div>
             </div>
@@ -108,7 +116,7 @@ export const Profile: React.FC = () => {
                </div>
                <div className="flex justify-between items-center py-2 border-b border-white/5">
                  <span className="text-sm">Episodes Watched</span>
-                 <span className="font-mono text-[#4ECDC4]">0</span>
+                 <span className="font-mono text-[#4ECDC4]">{user.stats?.totalEpisodesWatched || 0}</span>
                </div>
              </div>
           </GlassCard>
@@ -117,23 +125,27 @@ export const Profile: React.FC = () => {
         {/* Content Tabs */}
         <div className="border-b border-white/10 mb-6">
           <div className="flex gap-8">
-            <button className="pb-4 border-b-2 border-[#FF6B35] text-[#FF6B35] font-bold">Posts</button>
+            <button className="pb-4 border-b-2 border-[#FF6B35] text-[#FF6B35] font-bold">Quests</button>
             <button className="pb-4 border-b-2 border-transparent text-[#A0A0B0] hover:text-white transition-colors">Replies</button>
             <button className="pb-4 border-b-2 border-transparent text-[#A0A0B0] hover:text-white transition-colors">Media</button>
             <button className="pb-4 border-b-2 border-transparent text-[#A0A0B0] hover:text-white transition-colors">Likes</button>
           </div>
         </div>
 
-        {/* User Posts */}
+        {/* User Quests */}
         <div className="space-y-4">
           {loadingPosts ? (
             <div className="flex justify-center py-10"><Loader2 className="animate-spin" /></div>
-          ) : posts.length > 0 ? (
-            posts.map((post) => (
-             <PostCard key={post.id} post={post} />
+          ) : error ? (
+            <div className="text-center text-[#EF4444] py-10 bg-[#EF4444]/10 rounded-xl">
+               <p>{error}</p>
+            </div>
+          ) : quests.length > 0 ? (
+            quests.map((quest) => (
+             <PostCard key={quest.id} quest={quest} />
           ))
           ) : (
-             <div className="text-center text-[#A0A0B0]">No posts yet.</div>
+             <div className="text-center text-[#A0A0B0]">No quests yet.</div>
           )}
         </div>
       </div>

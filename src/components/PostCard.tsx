@@ -1,16 +1,15 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 import { MessageCircle, Heart, Repeat2, Share2, MoreHorizontal } from 'lucide-react';
-import { Post } from '../types';
+import { Quest } from '../types';
 import { GlassCard } from './GlassCard';
 
 interface PostCardProps {
-  post: Post;
+  quest: Quest;
 }
 
-export const PostCard: React.FC<PostCardProps> = ({ post }) => {
+export const PostCard: React.FC<PostCardProps> = ({ quest }) => {
   const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(post.likesCount);
+  const [likeCount, setLikeCount] = useState(quest.likes);
 
   const handleLike = () => {
     if (liked) {
@@ -21,10 +20,10 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
     setLiked(!liked);
   };
 
-  const formattedDate = typeof post.createdAt === 'string' 
-    ? post.createdAt 
-    : post.createdAt?.seconds 
-      ? new Date(post.createdAt.seconds * 1000).toLocaleDateString()
+  const formattedDate = typeof quest.createdAt === 'string' 
+    ? quest.createdAt 
+    : quest.createdAt?.seconds 
+      ? new Date(quest.createdAt.seconds * 1000).toLocaleDateString()
       : 'Just now';
 
   return (
@@ -33,8 +32,8 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
         {/* Avatar */}
         <div className="flex-shrink-0">
           <img 
-            src={post.author.avatar} 
-            alt={post.author.username} 
+            src={quest.author.avatarUrl || `https://ui-avatars.com/api/?name=${quest.author.username}`} 
+            alt={quest.author.username} 
             className="w-12 h-12 rounded-full border border-white/10 object-cover"
           />
         </div>
@@ -43,8 +42,8 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2 overflow-hidden">
-              <span className="font-bold text-white truncate">{post.author.displayName}</span>
-              <span className="text-[#A0A0B0] text-sm truncate">@{post.author.username}</span>
+              <span className="font-bold text-white truncate">{quest.author.displayName}</span>
+              <span className="text-[#A0A0B0] text-sm truncate">@{quest.author.username}</span>
               <span className="text-[#6B6B7B] text-sm">• {formattedDate}</span>
             </div>
             <button className="text-[#6B6B7B] hover:text-white">
@@ -53,19 +52,24 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
           </div>
 
           <p className="text-white/90 mb-3 whitespace-pre-wrap leading-relaxed">
-            {post.content}
+            {quest.content}
           </p>
 
-          {post.image && (
+          {quest.mediaAttachment && (
             <div className="mb-3 rounded-xl overflow-hidden border border-white/10">
-              <img src={post.image} alt="Post content" className="w-full h-auto object-cover" />
+              {quest.mediaAttachment.type === 'video' ? (
+                <video src={quest.mediaAttachment.url} controls className="w-full h-auto" />
+              ) : (
+                <img src={quest.mediaAttachment.url} alt="Quest attachment" className="w-full h-auto object-cover" />
+              )}
             </div>
           )}
 
-          {post.animeTag && (
+          {quest.animeReference && (
             <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[#FF6B35]/10 text-[#FF6B35] text-xs font-medium mb-3">
               <span>📺</span>
-              {post.animeTag.title}
+              {quest.animeReference.title}
+              {quest.animeReference.episode && <span className="opacity-70"> • EP {quest.animeReference.episode}</span>}
             </div>
           )}
 
@@ -75,14 +79,14 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
               <div className="p-2 rounded-full group-hover:bg-[#4ECDC4]/10">
                 <MessageCircle size={18} />
               </div>
-              <span className="text-sm">{post.repliesCount}</span>
+              <span className="text-sm">{quest.replies}</span>
             </button>
 
             <button className="flex items-center gap-2 hover:text-[#00D26A] group transition-colors">
               <div className="p-2 rounded-full group-hover:bg-[#00D26A]/10">
                 <Repeat2 size={18} />
               </div>
-              <span className="text-sm">{post.repostsCount}</span>
+              <span className="text-sm">{quest.reposts}</span>
             </button>
 
             <button 
